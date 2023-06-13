@@ -1,3 +1,4 @@
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/src/widgets/framework.dart';
 import 'package:ippl_miftah/db/db.dart';
@@ -23,6 +24,8 @@ class AddNotesState extends State<AddNotes> {
   Note note;
   TextEditingController titleController = TextEditingController();
   TextEditingController descriptionController = TextEditingController();
+  String? file;
+
   bool isEdited = false;
 
   AddNotesState(this.note, this.appBarTitle);
@@ -54,7 +57,7 @@ class AddNotesState extends State<AddNotes> {
                   color: Colors.black,
                 ),
                 onPressed: () {
-                  titleController.text.isEmpty
+                  descriptionController.text.isEmpty
                       ? showEmptyTitleDialog(context)
                       : _save();
                 },
@@ -62,8 +65,8 @@ class AddNotesState extends State<AddNotes> {
               IconButton(
                 splashRadius: 22,
                 icon: const Icon(Icons.delete, color: Colors.black),
-                onPressed: () {
-                  showDeleteDialog(context);
+                onPressed: () async {
+                  _delete();
                 },
               )
             ],
@@ -75,33 +78,55 @@ class AddNotesState extends State<AddNotes> {
                   padding: const EdgeInsets.all(16.0),
                   child: TextField(
                     controller: titleController,
-                    maxLength: 255,
+                    maxLength: 30,
+                    maxLines: 3,
                     style: Theme.of(context).textTheme.bodyText2,
                     onChanged: (value) {
                       updateTitle();
                     },
                     decoration: const InputDecoration.collapsed(
+                      border: OutlineInputBorder(
+                          borderSide: BorderSide(color: Colors.black)),
                       hintText: 'Title',
                     ),
                   ),
                 ),
-                Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: TextField(
-                      keyboardType: TextInputType.multiline,
-                      maxLines: 10,
-                      maxLength: 255,
-                      controller: descriptionController,
-                      onChanged: (value) {
-                        updateDescription();
-                      },
-                      decoration: const InputDecoration.collapsed(
-                        hintText: 'Description',
-                      ),
+                Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: TextField(
+                    keyboardType: TextInputType.multiline,
+                    maxLines: 10,
+                    maxLength: 255,
+                    controller: descriptionController,
+                    onChanged: (value) {
+                      updateDescription();
+                    },
+                    decoration: InputDecoration.collapsed(
+                      border: OutlineInputBorder(
+                          borderSide: BorderSide(color: Colors.black)),
+                      hintText: 'Description',
                     ),
                   ),
                 ),
+                IconButton(
+                    splashRadius: 22,
+                    onPressed: () async {
+                      FilePickerResult? res =
+                          await FilePicker.platform.pickFiles(
+                        type: FileType.custom,
+                        allowedExtensions: ['mp3', 'ogg', 'wav'],
+                      );
+
+                      if (res != null) {
+                        file = res.files.first.path;
+                      }
+                      updateFile();
+                      print(file);
+                    },
+                    icon: Icon(
+                      Icons.upload,
+                      color: Colors.black,
+                    ))
               ],
             ),
           ),
@@ -144,8 +169,8 @@ class AddNotesState extends State<AddNotes> {
         return AlertDialog(
           shape: const RoundedRectangleBorder(
               borderRadius: BorderRadius.all(Radius.circular(10.0))),
-          title: Text("Title is empty!"),
-          content: Text('The title of the note cannot be empty.'),
+          title: Text("Description is Empty"),
+          content: Text('Description cant be empty.'),
           actions: <Widget>[
             TextButton(
               child: Text("Okay"),
@@ -202,14 +227,20 @@ class AddNotesState extends State<AddNotes> {
     note.description = descriptionController.text;
   }
 
+  void updateFile() {
+    isEdited = true;
+    note.file = file ?? "";
+  }
+
   // Save data to database
   void _save() async {
+    print(note.file);
     moveToLastScreen();
 
     // if (note.id != null) {
     //   await helper.updateNote(note);
     // } else {
-      await helper.insertNote(note);
+    await helper.insertNote(note);
     // }
   }
 
