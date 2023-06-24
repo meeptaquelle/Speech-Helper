@@ -114,7 +114,7 @@ class AddNotesState extends State<AddNotes> {
                       FilePickerResult? res =
                           await FilePicker.platform.pickFiles(
                         type: FileType.custom,
-                        allowedExtensions: ['mp3', 'ogg', 'wav'],
+                        allowedExtensions: ['mp3', 'ogg', 'wav', 'aac'],
                       );
 
                       if (res != null) {
