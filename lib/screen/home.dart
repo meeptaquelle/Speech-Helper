@@ -26,7 +26,7 @@ class _HomeScreenState extends State<HomeScreen> {
   String? engine;
   double volume = 1.0;
   double pitch = 1.0;
-  double rate = 0.4;
+  double rate = 0.6;
 
   TtsState ttsState = TtsState.stopped;
 
@@ -103,26 +103,31 @@ class _HomeScreenState extends State<HomeScreen> {
           MaterialPageRoute(builder: (context) => AddNotes(note, title)));
 
       if (result == true) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+              content:
+                  Text('Please wait a moment if the sound cant be played')),
+        );
         updateListView();
       }
     }
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('kontolodon awikwok'),
+        title: const Text('Speech Helper'),
       ),
       body: noteList.isEmpty
           ? Container(
-              color: Colors.grey,
+              color: const Color(0xFCCA43B),
               child: Center(
                 child: Padding(
-                  padding: const EdgeInsets.all(16.0),
+                  padding: const EdgeInsets.all(12.0),
                   child: Text('Click on the add button to add a new note!'),
                 ),
               ),
             )
           : Container(
-              color: Colors.grey,
+              color: Color(0xFFB4B8C5),
               child: getNotesList(),
             ),
       floatingActionButton: FloatingActionButton(
@@ -135,78 +140,83 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget getNotesList() {
-    return GridView.builder(
-        gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-            maxCrossAxisExtent: 200,
-            childAspectRatio: 4 / 2,
-            crossAxisSpacing: 20,
-            mainAxisSpacing: 20),
-        physics: const BouncingScrollPhysics(),
-        itemCount: count,
-        itemBuilder: (BuildContext context, int index) => Material(
-              borderRadius: BorderRadius.circular(12.0),
-              child: Padding(
-                padding: const EdgeInsets.all(1.0),
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(12.0),
-                  splashColor: Color.fromARGB(128, 78, 78, 78),
-                  onTap: () async {
+    return Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: GridView.builder(
+          gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+              maxCrossAxisExtent: 200,
+              childAspectRatio: 4 / 2,
+              crossAxisSpacing: 20,
+              mainAxisSpacing: 20),
+          physics: const BouncingScrollPhysics(),
+          itemCount: count,
+          itemBuilder: (BuildContext context, int index) => Material(
+            borderRadius: BorderRadius.circular(12.0),
+            child: Padding(
+              padding: const EdgeInsets.all(1.0),
+              child: InkWell(
+                borderRadius: BorderRadius.circular(12.0),
+                splashColor: Color.fromARGB(128, 78, 78, 78),
+                onTap: () async {
+                  try {
+                    await player.stop();
+                    await flutterTts.stop();
+                  } catch (e) {}
+                  if (noteList[index].file.isEmpty) {
+                    await _speak(noteList[index].description);
+                  } else if (!noteList[index].file.isEmpty) {
                     try {
-                      await player.stop();
-                      await flutterTts.stop();
-                    } catch (e) {}
-                    if (noteList[index].file.isEmpty) {
+                      File file = await File(noteList[index].file);
+                      await player.play(DeviceFileSource(file.path));
+                    } catch (e) {
                       await _speak(noteList[index].description);
-                    } else if (!noteList[index].file.isEmpty) {
-                      try {
-                        File file = await File(noteList[index].file);
-                        await player.play(DeviceFileSource(file.path));
-                      } catch (e) {
-                        await _speak(noteList[index].description);
-                      }
                     }
-                  },
-                  onLongPress: () {
-                    databaseHelper.deleteNote(noteList[index].id);
-                    updateListView();
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.all(1.0),
-                    child: Column(
-                      children: <Widget>[
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: <Widget>[
-                            Expanded(
-                              child: Padding(
-                                padding: const EdgeInsets.fromLTRB(4, 4, 4, 4),
-                                child: Text(
-                                  noteList[index].title,
-                                  style: TextStyle(fontWeight: FontWeight.bold),
-                                  overflow: TextOverflow.ellipsis,
-                                ),
+                  }
+                },
+                onLongPress: () {
+                  databaseHelper.deleteNote(noteList[index].id);
+                  updateListView();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Catatan berhasil dihapus')));
+                },
+                child: Container(
+                  padding: const EdgeInsets.all(1.0),
+                  child: Column(
+                    children: <Widget>[
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: <Widget>[
+                          Expanded(
+                            child: Padding(
+                              padding: const EdgeInsets.fromLTRB(4, 4, 4, 4),
+                              child: Text(
+                                noteList[index].title,
+                                style: TextStyle(fontWeight: FontWeight.bold),
+                                overflow: TextOverflow.ellipsis,
                               ),
                             ),
+                          ),
+                        ],
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(4, 4, 4, 4),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.start,
+                          children: <Widget>[
+                            Expanded(
+                              child: Text(noteList[index].description,
+                                  maxLines: 2),
+                            )
                           ],
                         ),
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(4, 4, 4, 4),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.start,
-                            children: <Widget>[
-                              Expanded(
-                                child: Text(noteList[index].description,
-                                    maxLines: 2),
-                              )
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 ),
               ),
-            ));
+            ),
+          ),
+        ));
   }
 
   void updateListView() {
